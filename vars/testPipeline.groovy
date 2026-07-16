@@ -6,14 +6,14 @@ def call(Map configMap){
             } 
         }
         stages {
-            stage('Testing') {
+            stage('testing') {
                 steps {
                     script{
-                    sh """
-                        echo "project: ${configMap.project}"
-                        """   
-                    }
-                    
+                        sh """
+                            echo "project: ${configMap.project}"
+                            """   
+                        }
+                   }   
                 }
             }
         }
