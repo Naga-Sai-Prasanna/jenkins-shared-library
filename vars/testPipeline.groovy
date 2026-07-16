@@ -1,5 +1,5 @@
 def call(Map configMap){
-    pipeline
+    pipeline {
         agent {
             node {
                 label 'roboshop' 
@@ -33,3 +33,4 @@ def call(Map configMap){
             }
         }
     }
+}
