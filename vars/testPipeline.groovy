@@ -10,7 +10,7 @@ def call(Map configMap){
             steps {
                 script{
                    sh """
-                     echo "building"
+                       echo "project: ${configMap.project}"
                     """   
                 }
                 
