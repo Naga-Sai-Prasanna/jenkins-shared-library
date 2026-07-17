@@ -131,7 +131,7 @@ def call(Map configMap){
                                 --scanners vuln \
                                 --pkg-types os \
                                 --severity HIGH,MEDIUM \
-                                --ignore-unfixed
+                              
                                 --format table \
                                 --output trivy-os-report.txt \
                                 --exit-code 0 \
@@ -148,7 +148,7 @@ def call(Map configMap){
                                     --scanners vuln \
                                     --pkg-types os \
                                     --severity HIGH,MEDIUM \
-                                    --ignore-unfixed
+                                    
                                     --format table \
                                     --exit-code 1 \
                                     --quiet \
@@ -173,7 +173,7 @@ def call(Map configMap){
                         sh """
                             trivy config \
                                 --severity HIGH,MEDIUM \
-                                --ignore-unfixed
+                                
                                 --format table \
                                 --output trivy-dockerfile-report.txt \
                                 Dockerfile
@@ -185,7 +185,7 @@ def call(Map configMap){
                             script: """
                                 trivy config \
                                     --severity HIGH,MEDIUM \
-                                    --ignore-unfixed
+                                  
                                     --exit-code 1 \
                                     --format table \
                                     Dockerfile
