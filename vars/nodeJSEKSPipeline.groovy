@@ -131,7 +131,7 @@ def call(Map configMap){
                                     sh """
                                         
                                        
-                                        aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.us-east-1.amazonaws.com
+                                        aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
                                         docker build -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} .
                                         docker push -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} 
                                     """
@@ -222,8 +222,8 @@ def call(Map configMap){
                             withAWS(credentials: 'aws-creds', region: "${region}") {
                                     // Commands here have AWS authentication
                                 sh """
-                                    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.us-east-1.amazonaws.com
-                                    docker push ${ACC_ID}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
+                                    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
+                                    docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
                                 """
                             }
                         }
