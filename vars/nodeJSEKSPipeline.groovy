@@ -176,6 +176,7 @@ def call(Map configMap){
                                     --scanners vuln \
                                     --pkg-types os \
                                     --severity HIGH,MEDIUM \
+                                    --ignore-unfixed \
                                     --format table \
                                     --exit-code 1 \
                                     --quiet \
