@@ -251,8 +251,7 @@ def call(Map configMap){
                 }
             }
         }
-    }   
-}    
+    }       
 
 
 
