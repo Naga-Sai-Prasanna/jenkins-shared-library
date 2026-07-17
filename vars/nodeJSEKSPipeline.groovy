@@ -235,6 +235,7 @@ def call(Map configMap){
                         }
                     }
                 }
+            }    
 
             // post build
             post { 
