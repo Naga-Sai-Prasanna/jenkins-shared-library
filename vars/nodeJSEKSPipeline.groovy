@@ -2,7 +2,7 @@ def call(Map configMap){
         pipeline {
             agent {
                 node {
-                    label "${configMap.get('project')}"
+                    label '${project}' 
                 } 
             }
             environment {
@@ -11,6 +11,7 @@ def call(Map configMap){
                 region = "us-east-1"
                 project =  configMap.get("project")
                 component =  configMap.get("component")
+                region = "us-east-1"
             }
             options {
     
@@ -69,17 +70,12 @@ def call(Map configMap){
                 }
                 stage("Quality Gate") {
                     steps {
-                        script {
-                            timeout(time: 1, unit: 'HOURS') {
-                                def qg = waitForQualityGate()
-                                if (qg.status != 'OK') {
-                                    utils.updateCommitStatus('failure', "SonarQube quality gate failed: ${qg.status}", 'sonar-scan')
-                                    error "Quality gate failed: ${qg.status}"
-                                } else {
-                                    utils.updateCommitStatus('success', 'SonarQube quality gate passed', 'sonar-scan')
-                                }
-                            }
+                        
+                        timeout(time: 1, unit: 'HOURS') {
+                            waitForQualityGate abortPipeline: true
+                                    
                         }
+                   
                     }
                 }
                 stage('Dependabot Alerts Check') {
@@ -134,7 +130,10 @@ def call(Map configMap){
                                     // Commands here have AWS authentication
                                     sh """
                                         
+                                       
+                                        aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.us-east-1.amazonaws.com
                                         docker build -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} .
+                                        docker push -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} 
                                     """
                             }
                         }
@@ -219,23 +218,20 @@ def call(Map configMap){
                 }
                 stage ('Push image to ECR'){
                     steps {
-                        script {
-                            try {
-                                withAWS(credentials: 'aws-creds', region: "${region}") {
-                                    sh """
-                                        aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
-                                        docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
-                                    """
-                                }
-                                utils.updateCommitStatus('success', "Image ${appVersion} pushed to ECR", 'push-image')
-                            } catch (err) {
-                                utils.updateCommitStatus('failure', 'Failed to push image to ECR', 'push-image')
-                                throw err
+                        script{
+                            withAWS(credentials: 'aws-creds', region: "${region}") {
+                                    // Commands here have AWS authentication
+                                sh """
+                                    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.us-east-1.amazonaws.com
+                                    docker push ${ACC_ID}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
+                                """
                             }
                         }
                     }
                 }
-            }    
+                
+            }
+
 
             // post build
             post { 
