@@ -39,7 +39,7 @@ def call(Map configMap){
                             echo "Building version ${appVersion}"
                         }
                     }
-                }
+            }
             
 
             stage('Install Dependencies') {
@@ -50,8 +50,8 @@ def call(Map configMap){
                                 npm install
                             """
                         }
-                    }
                 }
+            }
             
 
             stage('Unit tests') {
@@ -63,7 +63,7 @@ def call(Map configMap){
                             """
                         }
                     }
-                }
+            }
             
 
             stage('SonarQube Analysis') {
@@ -76,7 +76,7 @@ def call(Map configMap){
                             }
                         }
                     }
-                }
+            }
             
 
             stage('Quality Gate') {
@@ -147,8 +147,8 @@ def call(Map configMap){
                             }
                         }
                     }
-                }
             }
+            
 
             stage('Trivy OS Scan') {
                 steps {
@@ -206,7 +206,7 @@ def call(Map configMap){
                             }
                         }
                     }
-                
+            
             }    
 
             stage('Trivy Dockerfile Scan') {
@@ -260,7 +260,6 @@ def call(Map configMap){
         }
     
     }
-
 }
 
 
