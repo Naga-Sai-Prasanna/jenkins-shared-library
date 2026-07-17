@@ -1,70 +1,98 @@
 def call(Map configMap){
-    pipeline {
+
+   pipeline {
         agent {
             node {
-                label "${configMap.get('project')}"
+                label '${project}'
             }
         }
+
+        parameters {
+            
+            booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Toggle this value')
+
+        }  
+
         environment {
             appVersion = ""
             acc_id = "864981724645"
             region = "us-east-1"
-            project =  configMap.get("project")
-            component =  configMap.get("component")
+            project = configMap.get("project")
+            component = configMap.get("component")
+
         }
+
         options {
+            // disableConcurrentBuilds()
             timeout(time: 15, unit: 'MINUTES')
         }
-        parameters {
-            booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Toggle this value')
-        }
-        stages {
-            stage('Read version'){
-                steps {
-                    script {
-                        // Load and parse the JSON file
-                        def packageJson = readJSON file: 'package.json'
 
-                        // Access fields directly
-                        appVersion = packageJson.version
-                        echo "Building version ${appVersion}"
-                    }
-                }
-            }
-            stage('Install Dependencies') {
+        
+        stages {
+
+            stage('Read version') {
                 steps {
-                    script{
-                        sh """
-                            npm install
-                        """
-                    }
-                }
-            }
-            stage ('SonarQube Analysis'){
-                steps {
-                    script {
-                        def scannerHome = tool name: 'sonar-8' // agent configuration
-                        withSonarQubeEnv('sonar-server') { // analysing and uploading to server
-                            sh "${scannerHome}/bin/sonar-scanner"
+                    dir('${component}-unit-tests') {
+                        script {
+                            def packageJson = readJSON file: 'package.json'
+                            appVersion = packageJson.version
+                            echo "Building version ${appVersion}"
                         }
                     }
                 }
             }
-            stage("Quality Gate") {
+
+            stage('Install Dependencies') {
+                steps {
+                    dir('${component}-unit-tests') {
+                        script {
+                            sh """
+                                npm install
+                            """
+                        }
+                    }
+                }
+            }
+
+            stage('Unit tests') {
+                steps {
+                    dir('${component}-unit-tests') {
+                        script {
+                            sh """
+                                npm test
+                            """
+                        }
+                    }
+                }
+            }
+
+            stage('SonarQube Analysis') {
+                steps {
+                    dir('${component}-unit-tests') {
+                        script {
+                            def scannerHome = tool name: 'sonar-8'
+                            withSonarQubeEnv('sonar-server') {
+                                sh "${scannerHome}/bin/sonar-scanner"
+                            }
+                        }
+                    }
+                }
+            }
+
+            stage('Quality Gate') {
                 steps {
                     timeout(time: 1, unit: 'HOURS') {
                         waitForQualityGate abortPipeline: true
                     }
                 }
             }
+
             stage('Dependabot Alerts Check') {
                 steps {
                     withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
                         script {
-                            // NOTE: confirm this owner is correct for your org
                             def owner = 'Naga-Sai-Prasanna'
-                            // FIX: was single-quoted '${component}' -> never interpolated
-                            def repo  = "${component}"
+                            def repo  = '${component}'
 
                             def response = sh(
                                 script: """
@@ -82,7 +110,7 @@ def call(Map configMap){
                             def body       = parts[0..-2].join('\n')
 
                             if (httpStatus != '200') {
-                                error "GitHub API call failed with HTTP ${httpStatus}. Check token permissions (security_events scope required).\nResponse: ${body}"
+                                error "GitHub API call failed with HTTP ${httpStatus}. Check token permissions (Dependabot alerts scope required).\nResponse: ${body}"
                             }
 
                             def alerts = readJSON text: body
@@ -96,28 +124,32 @@ def call(Map configMap){
                                     def severity = alert.security_advisory?.severity?.toUpperCase() ?: 'UNKNOWN'
                                     def summary  = alert.security_advisory?.summary ?: 'No summary'
                                     def fixedIn  = alert.security_vulnerability?.first_patched_version?.identifier ?: 'No fix available'
-                                    echo "  [${severity}] ${pkg} - ${summary} (Fixed in: ${fixedIn})"
+                                    echo "  [${severity}] ${pkg} — ${summary} (Fixed in: ${fixedIn})"
                                 }
                                 error "Pipeline failed: ${alerts.size()} HIGH/CRITICAL Dependabot alert(s) detected."
                             }
                         }
                     }
+                
                 }
             }
+
             stage('Build Image') {
                 steps {
-                    script{
-                        withAWS(credentials: 'aws-creds', region: "${region}") {
-                            // Commands here have AWS authentication
-                            sh """
-                                aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
-                                docker build -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} .
-                                docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
-                            """
+                    dir('${component}-unit-tests') {
+                        script {
+                            withAWS(credentials: 'aws-creds', region: "${region}") {
+                                sh """
+                                    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.${region}.amazonaws.com
+                                    docker build -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} .
+                                    docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
+                                """
+                            }
                         }
                     }
                 }
             }
+
             stage('Trivy OS Scan') {
                 steps {
                     script {
@@ -152,15 +184,31 @@ def call(Map configMap){
                         )
 
                         if (scanResult != 0) {
-                            error "Trivy found HIGH/MEDIUM OS vulnerabilities. Pipeline failed."
+                            error "🚨 Trivy found HIGH/MEDIUM OS vulnerabilities. Pipeline failed."
                         } else {
-                            echo "No HIGH or MEDIUM OS vulnerabilities found. Pipeline continues."
+                            echo "✅ No HIGH or MEDIUM OS vulnerabilities found. Pipeline continues."
                         }
                     }
+            
+            
                 }
-            }
-            // FIX: this stage was missing its opening brace "{" after the stage name,
-            // which broke compilation of the whole file (root cause of MissingMethodException)
+            }    
+
+            stage ('Push image to ECR'){
+                steps {
+                    script{
+                            withAWS(credentials: 'aws-creds', region: "${region}") {
+                                // Commands here have AWS authentication
+                                sh """
+                                    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
+                                    docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
+                                """
+                            }
+                        }
+                    }
+                
+            }    
+
             stage('Trivy Dockerfile Scan') {
                 steps {
                     script {
@@ -186,32 +234,21 @@ def call(Map configMap){
                         )
 
                         if (scanResult != 0) {
-                            error "Trivy found HIGH/MEDIUM misconfigurations in Dockerfile. Pipeline failed."
+                            error "🚨 Trivy found HIGH/MEDIUM misconfigurations in Dockerfile. Pipeline failed."
                         } else {
-                            echo "No HIGH or MEDIUM Dockerfile misconfigurations found. Pipeline continues."
+                            echo "✅ No HIGH or MEDIUM Dockerfile misconfigurations found. Pipeline continues."
                         }
                     }
                 }
             }
-            stage ('Push image to ECR'){
-                steps {
-                    script{
-                        withAWS(credentials: 'aws-creds', region: "${region}") {
-                            // Commands here have AWS authentication
-                            sh """
-                                aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
-                                docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
-                            """
-                        }
-                    }
-                }
-            }
+
+
+
         }
 
-        // post build
         post {
             always {
-                echo 'Pipeline finished.'
+                echo 'I will always say Hello again!'
                 cleanWs()
             }
             success {
@@ -221,5 +258,11 @@ def call(Map configMap){
                 echo "pipeline failure"
             }
         }
+    
     }
+
 }
+
+
+
+                            
