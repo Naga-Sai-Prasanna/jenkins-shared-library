@@ -37,7 +37,7 @@ def call(Map configMap){
                             def packageJson = readJSON file: 'package.json'
                             appVersion = packageJson.version
                             echo "Building version ${appVersion}"
-                            sh 'printenv | sort'
+                           // sh 'printenv | sort'
                         }
                     }
             }
@@ -58,14 +58,17 @@ def call(Map configMap){
             stage('Unit tests') {
                 steps {
                    
-                        script {
-                            sh """
-                                npm test
-                            """
+                    script {
+                        def testResult = sh(script: 'npm test', returnStatus: true)
+                        if (testResult != 0) {
+                            utils.updateCommitStatus('failure', 'Unit tests failed', 'unit-tests')
+                            error "Unit tests failed."
+                        } else {
+                            utils.updateCommitStatus('success', 'Unit tests passed', 'unit-tests')
                         }
                     }
+                }
             }
-            
 
             stage('SonarQube Analysis') {
                 steps {
