@@ -37,6 +37,7 @@ def call(Map configMap){
                             def packageJson = readJSON file: 'package.json'
                             appVersion = packageJson.version
                             echo "Building version ${appVersion}"
+                            sh 'printenv | sort'
                         }
                     }
             }
@@ -159,7 +160,7 @@ def call(Map configMap){
             //                     --scanners vuln \
             //                     --pkg-types os \
             //                     --severity HIGH,MEDIUM \
-            //                     --ignore-unfixed \
+
             //                     --format table \
             //                     --output trivy-os-report.txt \
             //                     --exit-code 0 \
@@ -176,7 +177,7 @@ def call(Map configMap){
             //                         --scanners vuln \
             //                         --pkg-types os \
             //                         --severity HIGH,MEDIUM \
-            //                         --ignore-unfixed \
+            //                         
             //                         --format table \
             //                         --exit-code 1 \
             //                         --quiet \
