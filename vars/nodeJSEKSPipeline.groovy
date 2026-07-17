@@ -32,7 +32,7 @@ def call(Map configMap){
 
             stage('Read version') {
                 steps {
-                    dir('${component}-unit-tests') {
+                    
                         script {
                             def packageJson = readJSON file: 'package.json'
                             appVersion = packageJson.version
@@ -40,11 +40,11 @@ def call(Map configMap){
                         }
                     }
                 }
-            }
+            
 
             stage('Install Dependencies') {
                 steps {
-                    dir('${component}-unit-tests') {
+                   
                         script {
                             sh """
                                 npm install
@@ -52,11 +52,11 @@ def call(Map configMap){
                         }
                     }
                 }
-            }
+            
 
             stage('Unit tests') {
                 steps {
-                    dir('${component}-unit-tests') {
+                   
                         script {
                             sh """
                                 npm test
@@ -64,11 +64,11 @@ def call(Map configMap){
                         }
                     }
                 }
-            }
+            
 
             stage('SonarQube Analysis') {
                 steps {
-                    dir('${component}-unit-tests') {
+                    
                         script {
                             def scannerHome = tool name: 'sonar-8'
                             withSonarQubeEnv('sonar-server') {
@@ -77,7 +77,7 @@ def call(Map configMap){
                         }
                     }
                 }
-            }
+            
 
             stage('Quality Gate') {
                 steps {
