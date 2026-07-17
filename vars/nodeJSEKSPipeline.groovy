@@ -2,7 +2,7 @@ def call(Map configMap){
         pipeline {
             agent {
                 node {
-                    label '${project}' 
+                    label "${configMap.get('project')}"
                 } 
             }
             environment {
@@ -87,7 +87,7 @@ def call(Map configMap){
                         withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
                             script {
                                 def owner = 'Naga-Sai-Prasanna'
-                                def repo  = '${component}'
+                                def repo  = "${component}"
 
                                 def response = sh(
                                     script: """
@@ -252,6 +252,12 @@ def call(Map configMap){
             }
         }
     }       
+
+
+
+
+
+
 
 
 
