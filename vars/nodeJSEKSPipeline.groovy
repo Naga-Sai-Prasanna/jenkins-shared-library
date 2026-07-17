@@ -136,7 +136,7 @@ def call(Map configMap){
 
             stage('Build Image') {
                 steps {
-                    dir('${component}-unit-tests') {
+                    
                         script {
                             withAWS(credentials: 'aws-creds', region: "${region}") {
                                 sh """
