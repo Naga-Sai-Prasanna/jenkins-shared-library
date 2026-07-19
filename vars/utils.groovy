@@ -56,21 +56,21 @@ def readAppVersion() {
 // Auto-assigns to the active sprint. Returns the created issue key (e.g. ROBO-42).
 def createJiraTicket(String project, String component, String appVersion, String shortCommit) {
     def sprintId = ''
-    withCredentials([
-        string(credentialsId: 'jira-url', variable: 'JIRA_URL'),
-        usernamePassword(credentialsId: 'jira-creds', usernameVariable: 'JIRA_EMAIL', passwordVariable: 'JIRA_TOKEN')
-    ]) {
-        withEnv(["JIRA_PROJECT=${project}"]) {
-            sprintId = sh(script: '''
-                BOARD_ID=$(curl -sf -u "$JIRA_EMAIL:$JIRA_TOKEN" \
-                    "$JIRA_URL/rest/agile/1.0/board?projectKeyOrId=$JIRA_PROJECT" \
-                | jq -r '.values[0].id')
-                curl -sf -u "$JIRA_EMAIL:$JIRA_TOKEN" \
-                    "$JIRA_URL/rest/agile/1.0/board/$BOARD_ID/sprint?state=active" \
-                | jq -r '.values[0].id'
-            ''', returnStdout: true).trim()
-        }
-    } 
+    // withCredentials([
+    //     string(credentialsId: 'jira-url', variable: 'JIRA_URL'),
+    //     usernamePassword(credentialsId: 'jira-creds', usernameVariable: 'JIRA_EMAIL', passwordVariable: 'JIRA_TOKEN')
+    // ]) {
+    //     withEnv(["JIRA_PROJECT=${project}"]) {
+    //         sprintId = sh(script: '''
+    //             BOARD_ID=$(curl -sf -u "$JIRA_EMAIL:$JIRA_TOKEN" \
+    //                 "$JIRA_URL/rest/agile/1.0/board?projectKeyOrId=$JIRA_PROJECT" \
+    //             | jq -r '.values[0].id')
+    //             curl -sf -u "$JIRA_EMAIL:$JIRA_TOKEN" \
+    //                 "$JIRA_URL/rest/agile/1.0/board/$BOARD_ID/sprint?state=active" \
+    //             | jq -r '.values[0].id'
+    //         ''', returnStdout: true).trim()
+    //     }
+    // } 
 
     def issue = [
         fields: [
