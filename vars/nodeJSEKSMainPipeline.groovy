@@ -24,7 +24,7 @@ def call(Map configMap) {
         environment {
             appVersion   = ""
             shortCommit  = ""
-            acc_id       = "160885265516"
+            acc_id       = "864981724645"
             project      = configMap.get("project")
             component    = configMap.get("component")
             jira_project = configMap.get("jiraProject")
